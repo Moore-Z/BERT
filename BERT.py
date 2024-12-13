@@ -1,10 +1,14 @@
 import re
-from cgi import maxlen
 from random import randrange, randint
 import math
 from random import random
 from random import shuffle
-from O1BERT import batch_size
+
+from torch.nn.functional import embedding
+
+from O1BERT import batch_size, max_seq_len
+import torch
+from torch import nn
 
 text = (
        'Hello, how are you? I am Romeo.n'
@@ -14,6 +18,10 @@ text = (
        'Oh Congratulations, Julietn'
        'Thanks you Romeo'
    )
+d_model = 512
+batch_size = 100
+token_list = []
+max_pred = 20
 # re.sub substitute, .lower() lower case, split
 sentences = re.sub("[.,!?-]",'',text.lower()).split('n')
 word_list = list(set(" ".join(sentences).split()))
@@ -24,9 +32,7 @@ for i, w in enumerate(word_list):
 number_dict = {i : w for i, w in enumerate(word_dict)}
 vocab_size = len(word_dict)
 
-batch_size = 100
-token_list = []
-max_pred = 20
+
 
 def make_batch():
     batch = []
@@ -87,6 +93,29 @@ def make_batch():
 
 
 
+
+    # Embedding layers
+    class Embedding(nn.Module):
+        def __init__(self, vocab_size, maxlen,n_segments):
+            super(Embedding, self).__init__()
+            self.tok_embedding = nn.Embedding(vocab_size, d_model)
+            self.pos_embedding = nn.Embedding(maxlen, d_model)
+            self.seg_embedding = nn.Embedding(n_segments, d_model)
+
+        def forward(self, x, seg):
+            seq_len = x.size(1)
+            pos = torch.arange(seq_len, dtype = torch.long)
+            pos = pos.unsqueeze(0).expand_as(x)
+            embedding = self.tok_embedding(x) + self.pos_embedding(pos) + self.seg_embedding(seg)
+            return embedding
+
+
+    # Attention Mask
+    # Encoder layer
+    #     Multi-head attention
+    #         Scaled dot product attention
+    #     Position-wise feed-forward network
+    # BERT (assembling all the components)
 
 
 
